@@ -1,5 +1,8 @@
 #!/usr/bin/python
 
+
+# Socket File Transfer Client
+
 import socket
 import sys
 from thread import *
@@ -8,7 +11,6 @@ import os.path
 from SockServUtilities import DateString
 from SockServUtilities import Files
 
-import socket      
 
 if len(sys.argv) < 3:
   print "USAGE sock_client.py LOCAL_FILE REMOTE_FILE"
