@@ -4,24 +4,31 @@
 # Copyright Vic Engle 2016 All rights reserved
 #
 #
-import socket
-import sys
+
 from thread import *
-import re,os,time,datetime,subprocess
-import os.path
+import re,os,time,datetime,subprocess,socket,sys
 from SockServUtilities import DateString
 from SockServUtilities import Files
+from optparse import OptionParser
+
+parser = OptionParser()
 
 
+parser.add_option("-p", "--port", dest="port",
+                  help="Port on remote host for connection")
+                  
 
-
+(options, args) = parser.parse_args()                  
 HOST = ''
 PORT = 8767
 WORKERS = 10
 sockserv_log = 'sockserv.log'
-client_log = 'clients.log'
+client_log = 'connection_handler.log'
 pid = os.getpid()
 logger = Files()
+
+if options.port:
+  port = int(options.port)
 
 logger.write_log(sockserv_log, "Socket Server Starting Up. PID=" + str(pid) + "\n")
 
