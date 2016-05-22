@@ -40,10 +40,18 @@ else:
  
 localfile =  options.localfile
 
+f = Files()
+filestats = f.stat_file(localfile)
+
+
+print "Size = ", filestats[1]
+print "Checksum = ", filestats[0]
+
+
 host = 'nexus.viclab.org'
 port = 8767                 
 
-sockserv_log = 'client.log'
+sockserv_log = 'cliest = os.stat("file.dat")nt.log'
  
 if options.port:
   port = int(options.port)
@@ -69,7 +77,7 @@ print "Connected!"
 
 print "REMOTE_HOST> " + s.recv(1024)
 
-s.send("SOCK_CLIENT_SENDING_FILE: " + remotefile)
+s.send("SOCK_CLIENT_SENDING_FILE:" + remotefile + ':' + str(filestats[1]) + ':' + str(filestats[0]) )
 print "REMOTE_HOST> " + s.recv(1024)
 
 message = "Transferring " + localfile
@@ -79,18 +87,27 @@ print message
 f = open(localfile,'rb')
 
 chunk = f.read(1024)
-
+print 'Sending...'
 while 1:
-  print 'Sending...'
   s.send(chunk)
   chunk = f.read(1024)
+
   if not chunk:
     break
 f.close()
+print "Sending transfer complete signal"
 
-s.send('')
-print "Data Transfer Complete"
-logger.write_log(sockserv_log,  "File Transfer Completed.\n")
+s.send('__END_SockServ_File__')
+
+print "Waiting for success ack from the server..."
+#time.sleep(2)
+final_ack = s.recv(1024)
+print "REMOTE_HOST> " + final_ack
+if 'Success' in final_ack:
+  print "Data Transfer Completed Successfully"
+else:
+  print "There was an error transferring the file"
+logger.write_log(sockserv_log,  final_ack + "\n")
 # Cleanup
 #
 s.close

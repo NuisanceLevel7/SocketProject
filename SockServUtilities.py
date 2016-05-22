@@ -2,6 +2,7 @@
 
 import re,os,time,datetime,subprocess,sys
 import os.path
+import hashlib
 
 class SocketConnectionServer:
 
@@ -37,25 +38,66 @@ class SocketConnectionServer:
       #Receiving from client
       data = conn.recv(1024)
       if not data:
-        reply = 'Disconnecting from IP addr ' + remotehost + '...\n\n'
-        conn.sendall(reply)
-        print "Sending disconnect notice to Client"
         conn.close()
         print "\n\nGoodbye... " + data + "\n\n"
         break
       elif file_open:
-        bfh.write(data)
+        if '__END_SockServ_File__' in data:
+          if len(data) > 21:
+            entry = "Received a partial message with the EOT signal"
+            logger.write_log(client_log, entry + "\n")
+            savedata = data[0:len(data) - 21]
+            bfh.write(savedata)
+          bfh.close()
+          # Check to see if we got a good file copy...
+          # First compute the checksum and size of the received file
+          f = Files()
+          filestats = f.stat_file(filename)
+          recv_filesize = filestats[1]
+          recv_filechk = filestats[0]
+          #
+          # Now compare to expected values received from the client
+          xfer_status = 'Success'
+          if recv_filesize != int(filesize):
+            xfer_status = 'Received File Size Mismatch'
+            print "Expected ", int(filesize)
+            print "Received ", recv_filesize
+            logger.write_log(client_log, "Received file size mismatch\n")
+          if str(recv_filechk) != filechk:
+            xfer_status = 'Received File CheckSum Mismatch'
+            print "Expected ", filechk
+            print "Received ", str(recv_filechk)
+            logger.write_log(client_log, "Received file checksum mismatch\n")
+          reply = 'Transfer complete! Status =  ' + xfer_status + '...\n\n'
+          conn.send(reply)
+          conn.close()
+          if xfer_status == 'Success':
+            entry = "Transfer completed successfully"
+            print entry
+            logger.write_log(client_log, entry + "\n")
+          else:
+            entry = "Transfer Failed"
+            print entry
+            logger.write_log(client_log, entry + "\n")            
+          break
+        else:          
+          bfh.write(data)
       elif 'SOCK_CLIENT_SENDING_FILE' in data.upper():
-        fields = data.split()
+        print data
+        fields = data.split(':')
         filename = "incoming/" + fields[1]
+        filesize = fields[2].strip()
+        filechk = fields[3].strip()
         filename = filename.strip()
+        print "Receiving file " + filename + ' ' + str(filesize)
         bfh = open(filename,'wb')
         file_open = True
-        print "Sending: Prepared to receive"
+        
         conn.send('Prepared to receive ' + fields[1])
+
     #came out of loop
   
-    bfh.close()
+    
     conn.close()
 
 
@@ -115,4 +157,18 @@ class Files:
       # Set the file_exists flag in case caller cares.
       self.file_exists = 0
 
+  def stat_file(self,fname):
+    blocksize = 4096
+    hash_sha = hashlib.sha256()
+    f = open(fname, "rb")
+    buf = f.read(blocksize)
+    while 1:
+      hash_sha.update(buf)
+      buf = f.read(blocksize)
+      if not buf:
+        break    
+    checksum =  hash_sha.hexdigest()
+    filestat = os.stat(fname)
+    filesize = filestat[6]
+    return checksum,filesize
 
