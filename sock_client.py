@@ -2,7 +2,6 @@
 
 
 # Socket File Transfer Client
-# Copyright 2016 by Vic Engle, all rights reserved
 
 import re,os,time,datetime,subprocess,sys,socket
 from SockServUtilities import DateString

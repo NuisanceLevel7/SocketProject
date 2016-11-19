@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 # Socket based file transfer server
-# Copyright Vic Engle 2016 All rights reserved
 #
 #
 
